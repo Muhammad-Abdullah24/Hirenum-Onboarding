@@ -9,8 +9,8 @@ export function ComingSoon() {
       </span>
       <h2 className="coming-soon-title">Applications aren&apos;t open yet</h2>
       <p className="coming-soon-copy">
-        We&apos;re not accepting new applications right now. Check back soon
-        &mdash; we&apos;ll be opening roles again shortly.
+        We&apos;re not accepting new applications right now. Check back soon.
+        We&apos;ll be opening roles again shortly.
       </p>
       <Link href="/" className="btn btn-ghost">
         <span>Back to home</span>

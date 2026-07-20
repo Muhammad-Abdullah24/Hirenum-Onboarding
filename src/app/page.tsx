@@ -11,7 +11,7 @@ const steps = [
   { n: "02", title: "Review", desc: "Our team reviews applications and shortlists candidates." },
   { n: "03", title: "Offer", desc: "Shortlisted candidates receive a personalized offer letter." },
   { n: "04", title: "Sign", desc: "Review the terms and sign electronically." },
-  { n: "05", title: "Onboard", desc: "You're in — welcome to the team." },
+  { n: "05", title: "Onboard", desc: "You're in. Welcome to the team." },
 ];
 
 export default function HomePage() {

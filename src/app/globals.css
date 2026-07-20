@@ -1804,6 +1804,15 @@ button.admin-photo-thumb:hover {
   transform-origin: bottom;
   animation: kineticWordIn 0.6s var(--ease-spring) forwards;
 }
+.kinetic-word-tight {
+  /* Sits right before a trailing punctuation-only word (see
+     .kinetic-word-period) -- the normal word-to-word gap looks like an
+     oversized, awkward gap in front of a single narrow character like ".". */
+  margin-right: 0.04em;
+}
+.kinetic-word-period {
+  margin-right: 0;
+}
 @keyframes kineticWordIn {
   to {
     opacity: 1;

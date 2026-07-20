@@ -29,7 +29,7 @@ function DocumentLink({ path, label }: { path: string | null; label: string }) {
     return (
       <div>
         <p className="detail-label">{label}</p>
-        <p style={{ color: "var(--text-secondary)" }}>—</p>
+        <p style={{ color: "var(--text-secondary)" }}>–</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ function PhotoField({ path, label }: { path: string | null; label: string }) {
     return (
       <div>
         <p className="detail-label">{label}</p>
-        <p style={{ color: "var(--text-secondary)" }}>—</p>
+        <p style={{ color: "var(--text-secondary)" }}>–</p>
       </div>
     );
   }
@@ -135,7 +135,7 @@ function DetailField({ label, value }: { label: string; value: string | null }) 
   return (
     <div>
       <p className="detail-label">{label}</p>
-      <p>{value || "—"}</p>
+      <p>{value || "–"}</p>
     </div>
   );
 }
@@ -222,12 +222,12 @@ function SubmissionDetail({
           <DetailField label="Permanent address" value={s.permanent_address} />
           <DetailField
             label="Emergency contact"
-            value={`${s.emergency_contact_1_name} (${s.emergency_contact_1_relationship}) — ${s.emergency_contact_1_phone}`}
+            value={`${s.emergency_contact_1_name} (${s.emergency_contact_1_relationship}) · ${s.emergency_contact_1_phone}`}
           />
           {s.emergency_contact_2_name && (
             <DetailField
               label="Second emergency contact"
-              value={`${s.emergency_contact_2_name} (${s.emergency_contact_2_relationship}) — ${s.emergency_contact_2_phone}`}
+              value={`${s.emergency_contact_2_name} (${s.emergency_contact_2_relationship}) · ${s.emergency_contact_2_phone}`}
             />
           )}
         </DetailSection>
@@ -244,7 +244,7 @@ function SubmissionDetail({
         <DetailSection icon={ShieldCheck} title="Statutory & benefits">
           <DetailField
             label="Nominee"
-            value={`${s.nominee_name} (${s.nominee_relationship}) — ${s.nominee_cnic}`}
+            value={`${s.nominee_name} (${s.nominee_relationship}) · ${s.nominee_cnic}`}
           />
           <DetailField label="Blood group" value={s.blood_group} />
         </DetailSection>

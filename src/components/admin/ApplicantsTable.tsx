@@ -173,7 +173,7 @@ export function ApplicantsTable() {
                           View <ExternalLink size={12} />
                         </a>
                       ) : (
-                        <span className="admin-table-subtle">—</span>
+                        <span className="admin-table-subtle">–</span>
                       )}
                     </td>
                     <td>
@@ -240,7 +240,7 @@ export function ApplicantsTable() {
                         View <ExternalLink size={12} />
                       </a>
                     ) : (
-                      <span className="admin-table-subtle">—</span>
+                      <span className="admin-table-subtle">–</span>
                     )}
                   </div>
                 </div>

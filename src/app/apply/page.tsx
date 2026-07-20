@@ -10,7 +10,7 @@ import { LampReveal } from "@/components/forms/LampReveal";
 
 export const metadata: Metadata = {
   title: "Careers | Hirenum",
-  description: "Applications aren't open right now — check back soon.",
+  description: "Applications aren't open right now. Check back soon.",
 };
 
 const HEADLINE_WORDS: (string | { text: string; accent: true })[] = [
@@ -49,7 +49,7 @@ export default function ApplyPage() {
                 </h1>
                 <p className="apply-story-copy anim-fade-up-3">
                   We&apos;re a small team that ships real work. No busywork,
-                  no bloated process &mdash; just people who care, building
+                  no bloated process, just people who care, building
                   things that matter.
                 </p>
                 <div className="anim-fade-up-4">

@@ -15,7 +15,6 @@ const HEADLINE_WORDS: (string | { text: string; accent: true })[] = [
   "get",
   "you",
   { text: "onboarded", accent: true },
-  ".",
 ];
 
 export default function OnboardingPage() {
@@ -32,16 +31,23 @@ export default function OnboardingPage() {
                 {HEADLINE_WORDS.map((word, i) => {
                   const isAccent = typeof word === "object";
                   const text = isAccent ? word.text : word;
+                  const isLast = i === HEADLINE_WORDS.length - 1;
                   return (
                     <span
                       key={i}
-                      className={`kinetic-word ${isAccent ? "text-gradient-brand" : ""}`}
+                      className={`kinetic-word ${isAccent ? "text-gradient-brand" : ""} ${isLast ? "kinetic-word-tight" : ""}`}
                       style={{ animationDelay: `${i * 70}ms` }}
                     >
                       {text}
                     </span>
                   );
                 })}
+                <span
+                  className="kinetic-word kinetic-word-period"
+                  style={{ animationDelay: `${HEADLINE_WORDS.length * 70}ms` }}
+                >
+                  .
+                </span>
               </h1>
               <p className="apply-story-copy mx-auto anim-fade-up-3">
                 A few details for HR and payroll. Your progress is saved as

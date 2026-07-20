@@ -400,7 +400,7 @@ export function OnboardingForm() {
         <FormSection
           index={3}
           title="Payroll & tax"
-          description="Used only for salary disbursement and tax filing — never shared outside HR/finance."
+          description="Used only for salary disbursement and tax filing. Never shared outside HR/finance."
           complete={payrollComplete}
         >
           <div className="space-y-5">
