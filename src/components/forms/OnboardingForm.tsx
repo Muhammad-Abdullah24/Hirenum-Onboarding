@@ -284,6 +284,11 @@ export function OnboardingForm() {
       </div>
 
       <div className="space-y-6">
+        <p className="required-legend">
+          <span className="required-mark" aria-hidden="true">*</span>
+          Required field
+        </p>
+
         <FormSection
           index={1}
           title="Identity & personal details"
@@ -293,22 +298,22 @@ export function OnboardingForm() {
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="fullName">Full name</label>
+                <label className="field-label" htmlFor="fullName">Full name<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="fullName" className="field-input" required value={values.fullName} onChange={text("fullName")} placeholder="Your full name" />
               </div>
               <div>
-                <label className="field-label" htmlFor="guardianName">Father&apos;s / husband&apos;s name</label>
+                <label className="field-label" htmlFor="guardianName">Father&apos;s / husband&apos;s name<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="guardianName" className="field-input" required value={values.guardianName} onChange={text("guardianName")} placeholder="As on CNIC" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="cnicNumber">CNIC number</label>
+                <label className="field-label" htmlFor="cnicNumber">CNIC number<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="cnicNumber" className="field-input" required value={values.cnicNumber} onChange={text("cnicNumber")} placeholder="xxxxx-xxxxxxx-x" />
               </div>
               <div>
-                <label className="field-label" htmlFor="dateOfBirth">Date of birth</label>
+                <label className="field-label" htmlFor="dateOfBirth">Date of birth<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="dateOfBirth" type="date" className="field-input" required value={values.dateOfBirth} onChange={text("dateOfBirth")} />
               </div>
             </div>
@@ -320,17 +325,17 @@ export function OnboardingForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="gender">Gender</label>
+                <label className="field-label" htmlFor="gender">Gender<span className="required-mark" aria-hidden="true">*</span></label>
                 <Select id="gender" options={genderOptions} value={values.gender} onChange={select("gender")} placeholder="Select gender" />
               </div>
               <div>
-                <label className="field-label" htmlFor="maritalStatus">Marital status</label>
+                <label className="field-label" htmlFor="maritalStatus">Marital status<span className="required-mark" aria-hidden="true">*</span></label>
                 <Select id="maritalStatus" options={maritalStatusOptions} value={values.maritalStatus} onChange={select("maritalStatus")} placeholder="Select status" />
               </div>
             </div>
 
             <div>
-              <label className="field-label" htmlFor="nationality">Nationality</label>
+              <label className="field-label" htmlFor="nationality">Nationality<span className="required-mark" aria-hidden="true">*</span></label>
               <input id="nationality" className="field-input" required value={values.nationality} onChange={text("nationality")} placeholder="e.g. Pakistani" />
             </div>
 
@@ -350,32 +355,32 @@ export function OnboardingForm() {
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="phone">Personal mobile number</label>
+                <label className="field-label" htmlFor="phone">Personal mobile number<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="phone" className="field-input" required value={values.phone} onChange={text("phone")} placeholder="03xx-xxxxxxx" />
               </div>
               <div>
-                <label className="field-label" htmlFor="guardianPhone">Father&apos;s / husband&apos;s phone number</label>
+                <label className="field-label" htmlFor="guardianPhone">Father&apos;s / husband&apos;s phone number<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="guardianPhone" className="field-input" required value={values.guardianPhone} onChange={text("guardianPhone")} placeholder="03xx-xxxxxxx" />
               </div>
             </div>
 
             <div>
-              <label className="field-label" htmlFor="email">Personal email</label>
+              <label className="field-label" htmlFor="email">Personal email<span className="required-mark" aria-hidden="true">*</span></label>
               <input id="email" type="email" className="field-input" required value={values.email} onChange={text("email")} placeholder="you@example.com" />
             </div>
 
             <div>
-              <label className="field-label" htmlFor="currentAddress">Current residential address</label>
+              <label className="field-label" htmlFor="currentAddress">Current residential address<span className="required-mark" aria-hidden="true">*</span></label>
               <textarea id="currentAddress" className="field-input" required rows={2} value={values.currentAddress} onChange={text("currentAddress")} placeholder="House, street, city" />
             </div>
 
             <div>
-              <label className="field-label" htmlFor="permanentAddress">Permanent address</label>
+              <label className="field-label" htmlFor="permanentAddress">Permanent address<span className="required-mark" aria-hidden="true">*</span></label>
               <textarea id="permanentAddress" className="field-input" required rows={2} value={values.permanentAddress} onChange={text("permanentAddress")} placeholder="Often different from current address" />
             </div>
 
             <div>
-              <p className="field-label" style={{ marginBottom: "10px" }}>Emergency contact</p>
+              <p className="field-label" style={{ marginBottom: "10px" }}>Emergency contact<span className="required-mark" aria-hidden="true">*</span></p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <input className="field-input" required aria-label="Emergency contact name" value={values.ec1Name} onChange={text("ec1Name")} placeholder="Name" />
                 <input className="field-input" required aria-label="Emergency contact relationship" value={values.ec1Relationship} onChange={text("ec1Relationship")} placeholder="Relationship" />
@@ -403,33 +408,33 @@ export function OnboardingForm() {
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="bankName">Bank name</label>
+                <label className="field-label" htmlFor="bankName">Bank name<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="bankName" className="field-input" required value={values.bankName} onChange={text("bankName")} placeholder="e.g. Meezan Bank" />
               </div>
               <div>
-                <label className="field-label" htmlFor="bankBranch">Branch</label>
+                <label className="field-label" htmlFor="bankBranch">Branch<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="bankBranch" className="field-input" required value={values.bankBranch} onChange={text("bankBranch")} placeholder="Branch name / code" />
               </div>
             </div>
 
             <div>
-              <label className="field-label" htmlFor="accountTitle">Account title</label>
+              <label className="field-label" htmlFor="accountTitle">Account title<span className="required-mark" aria-hidden="true">*</span></label>
               <input id="accountTitle" className="field-input" required value={values.accountTitle} onChange={text("accountTitle")} placeholder="Name on the account" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="field-label" htmlFor="accountNumber">Account number</label>
+                <label className="field-label" htmlFor="accountNumber">Account number<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="accountNumber" className="field-input" required value={values.accountNumber} onChange={text("accountNumber")} placeholder="Bank account number" />
               </div>
               <div>
-                <label className="field-label" htmlFor="iban">IBAN</label>
+                <label className="field-label" htmlFor="iban">IBAN<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="iban" className="field-input" required value={values.iban} onChange={text("iban")} placeholder="PKxx xxxx xxxx xxxx xxxx xxxx" />
               </div>
             </div>
 
             <div>
-              <label className="field-label" htmlFor="fbrFilerStatus">FBR filer status</label>
+              <label className="field-label" htmlFor="fbrFilerStatus">FBR filer status<span className="required-mark" aria-hidden="true">*</span></label>
               <Select id="fbrFilerStatus" options={fbrFilerOptions} value={values.fbrFilerStatus} onChange={select("fbrFilerStatus")} placeholder="Select status" />
             </div>
           </div>
@@ -444,21 +449,21 @@ export function OnboardingForm() {
           <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div>
-                <label className="field-label" htmlFor="nomineeName">Nominee name</label>
+                <label className="field-label" htmlFor="nomineeName">Nominee name<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="nomineeName" className="field-input" required value={values.nomineeName} onChange={text("nomineeName")} placeholder="Full name" />
               </div>
               <div>
-                <label className="field-label" htmlFor="nomineeCnic">Nominee CNIC</label>
+                <label className="field-label" htmlFor="nomineeCnic">Nominee CNIC<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="nomineeCnic" className="field-input" required value={values.nomineeCnic} onChange={text("nomineeCnic")} placeholder="xxxxx-xxxxxxx-x" />
               </div>
               <div>
-                <label className="field-label" htmlFor="nomineeRelationship">Relationship</label>
+                <label className="field-label" htmlFor="nomineeRelationship">Relationship<span className="required-mark" aria-hidden="true">*</span></label>
                 <input id="nomineeRelationship" className="field-input" required value={values.nomineeRelationship} onChange={text("nomineeRelationship")} placeholder="e.g. Spouse" />
               </div>
             </div>
 
             <div>
-              <label className="field-label" htmlFor="bloodGroup">Blood group</label>
+              <label className="field-label" htmlFor="bloodGroup">Blood group<span className="required-mark" aria-hidden="true">*</span></label>
               <Select id="bloodGroup" options={bloodGroupOptions} value={values.bloodGroup} onChange={select("bloodGroup")} placeholder="Select blood group" />
             </div>
           </div>

@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase/client";
-import { Eyebrow } from "@/components/ui/Eyebrow";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { OnboardingTable } from "@/components/admin/OnboardingTable";
 
 export default function AdminOnboardingPage() {
@@ -30,35 +29,16 @@ export default function AdminOnboardingPage() {
 
   if (!checked || !session) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className="admin-loading">
+        <div className="admin-loading-spinner" />
         <p style={{ color: "var(--text-secondary)" }}>Checking access...</p>
       </main>
     );
   }
 
   return (
-    <main className="container-page section">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <Eyebrow>HR dashboard</Eyebrow>
-          <h1 className="text-3xl mt-3">Onboarding</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="btn btn-ghost">
-            <span>Applicants</span>
-          </Link>
-          <button
-            className="btn btn-ghost"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              router.push("/admin/login");
-            }}
-          >
-            <span>Sign out</span>
-          </button>
-        </div>
-      </div>
+    <AdminShell eyebrow="HR dashboard" title="Onboarding">
       <OnboardingTable />
-    </main>
+    </AdminShell>
   );
 }

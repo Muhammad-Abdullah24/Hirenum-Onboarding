@@ -25,6 +25,9 @@ export function FileField({
     <div>
       <label className="field-label" htmlFor={id}>
         {label}
+        {required && (
+          <span className="required-mark" aria-hidden="true">*</span>
+        )}
       </label>
       <input
         id={id}
