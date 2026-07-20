@@ -25,22 +25,24 @@ export default function HomePage() {
         <section className="section relative z-10">
           <div className="container-page text-center max-w-3xl mx-auto">
             <div className="anim-fade-up-1 mb-4">
-              <Eyebrow>Now hiring interns</Eyebrow>
+              <Eyebrow>Careers &amp; onboarding</Eyebrow>
             </div>
             <h1 className="hero-headline anim-fade-up-2 mb-6">
-              Start your career at Hirenum.
+              Everything starts here at Hirenum.
             </h1>
             <p
               className="anim-fade-up-3 mb-8 text-lg"
               style={{ color: "var(--text-secondary)" }}
             >
-              We&apos;re looking for people who want to help founders and
-              leaders build real authority on LinkedIn. Apply below and
-              we&apos;ll take it from there.
+              Whether you&apos;re applying to join the team or getting set up
+              as a new hire, this is where it happens.
             </p>
-            <div className="anim-fade-up-4">
+            <div className="anim-fade-up-4 flex flex-wrap items-center justify-center gap-4">
               <Link href="/apply" className="btn btn-primary">
-                <span>Apply now</span>
+                <span>Apply for a role</span>
+              </Link>
+              <Link href="/onboarding" className="btn btn-ghost">
+                <span>Go to onboarding</span>
               </Link>
             </div>
           </div>
@@ -48,7 +50,7 @@ export default function HomePage() {
 
         <section id="roles" className="section relative z-10">
           <div className="container-page">
-            <Eyebrow>Open roles</Eyebrow>
+            <Eyebrow>Team &amp; roles</Eyebrow>
             <h2 className="text-3xl mt-3 mb-10">Where you could fit in</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {domains.map((d) => (
@@ -68,20 +70,29 @@ export default function HomePage() {
             <Eyebrow>How it works</Eyebrow>
             <h2 className="text-3xl mt-3 mb-10">From application to day one</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {steps.map((s) => (
-                <div key={s.n}>
-                  <div
-                    className="text-sm mb-2"
-                    style={{ color: "var(--accent)", fontWeight: 700 }}
-                  >
-                    {s.n}
-                  </div>
-                  <h3 className="text-base mb-2">{s.title}</h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {s.desc}
-                  </p>
-                </div>
-              ))}
+              {steps.map((s) => {
+                const content = (
+                  <>
+                    <div
+                      className="text-sm mb-2"
+                      style={{ color: "var(--accent)", fontWeight: 700 }}
+                    >
+                      {s.n}
+                    </div>
+                    <h3 className="text-base mb-2">{s.title}</h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      {s.desc}
+                    </p>
+                  </>
+                );
+                return s.title === "Onboard" ? (
+                  <Link key={s.n} href="/onboarding" className="hover-underline block">
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={s.n}>{content}</div>
+                );
+              })}
             </div>
           </div>
         </section>

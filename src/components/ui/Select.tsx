@@ -61,11 +61,12 @@ export function Select({
 
       {open && (
         <ul className="custom-select-menu" role="listbox" tabIndex={-1}>
-          {options.map((o) => (
+          {options.map((o, i) => (
             <li key={o.value} role="option" aria-selected={o.value === value}>
               <button
                 type="button"
                 className={`custom-select-option ${o.value === value ? "is-selected" : ""}`}
+                style={{ animationDelay: `${i * 28}ms` }}
                 onClick={() => {
                   onChange(o.value);
                   setOpen(false);

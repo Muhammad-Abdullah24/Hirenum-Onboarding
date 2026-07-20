@@ -28,6 +28,14 @@ create table if not exists applicants (
 
 alter table applicants enable row level security;
 
+-- RLS policies (below) only decide WHICH rows a role can touch -- Postgres
+-- still requires the base table grants below before a role can run insert/
+-- select/update on the table at all. Without these, every insert fails
+-- with "permission denied for table applicants" even though the RLS
+-- policy itself is correct.
+grant insert on applicants to anon;
+grant select, update on applicants to authenticated;
+
 -- Public applicants can insert their own application (form is unauthenticated).
 create policy "Anyone can submit an application"
   on applicants for insert
@@ -126,6 +134,11 @@ create table if not exists onboarding_submissions (
 );
 
 alter table onboarding_submissions enable row level security;
+
+-- See the note above the "applicants" grants for why these are needed in
+-- addition to the RLS policies below.
+grant insert on onboarding_submissions to anon;
+grant select, update on onboarding_submissions to authenticated;
 
 -- New hires fill this out unauthenticated, same as the /apply form.
 create policy "Anyone can submit onboarding paperwork"

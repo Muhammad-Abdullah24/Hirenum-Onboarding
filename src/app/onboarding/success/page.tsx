@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 import { GlowOrbs } from "@/components/layout/GlowOrbs";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Eyebrow } from "@/components/ui/Eyebrow";
+
+export const metadata: Metadata = {
+  title: "You're All Set | Hirenum",
+};
 
 export default function OnboardingSuccessPage() {
   return (

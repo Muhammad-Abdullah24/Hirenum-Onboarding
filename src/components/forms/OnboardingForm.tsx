@@ -267,8 +267,22 @@ export function OnboardingForm() {
     { label: "Employment & education", complete: employmentComplete },
   ];
 
+  const completedCount = badgeSections.filter((s) => s.complete).length;
+
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className={`onboarding-progress ${completedCount > 0 ? "has-progress" : ""}`}>
+        <div className="onboarding-progress-track">
+          <div
+            className="onboarding-progress-fill"
+            style={{ width: `${(completedCount / badgeSections.length) * 100}%` }}
+          />
+        </div>
+        <p className="onboarding-progress-label">
+          {completedCount} of {badgeSections.length} sections complete
+        </p>
+      </div>
+
       <div className="space-y-6">
         <FormSection
           index={1}
@@ -330,6 +344,7 @@ export function OnboardingForm() {
         <FormSection
           index={2}
           title="Contact information"
+          description="Used to reach you and, if needed, your family in an emergency."
           complete={contactComplete}
         >
           <div className="space-y-5">
@@ -382,6 +397,7 @@ export function OnboardingForm() {
         <FormSection
           index={3}
           title="Payroll & tax"
+          description="Used only for salary disbursement and tax filing — never shared outside HR/finance."
           complete={payrollComplete}
         >
           <div className="space-y-5">
@@ -451,6 +467,7 @@ export function OnboardingForm() {
         <FormSection
           index={5}
           title="Employment & education"
+          description="Confirms your offer and education history for HR's records."
           complete={employmentComplete}
         >
           <div className="space-y-5">

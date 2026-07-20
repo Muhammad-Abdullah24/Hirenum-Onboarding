@@ -7,8 +7,9 @@ import { useTheme } from "next-themes";
 import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
-  { href: "/#roles", label: "Open Roles" },
+  { href: "/#roles", label: "Team & Roles" },
   { href: "/#process", label: "How It Works" },
+  { href: "/onboarding", label: "Onboarding" },
 ];
 
 export function Nav({ forceDarkTheme = false }: { forceDarkTheme?: boolean }) {

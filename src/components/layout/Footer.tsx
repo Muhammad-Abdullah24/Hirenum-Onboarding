@@ -13,6 +13,7 @@ export function Footer() {
               alt="Hirenum"
               width={196}
               height={40}
+              priority
               className="mb-3"
               style={{ height: "28px", width: "auto" }}
             />
@@ -25,12 +26,17 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/#roles" className="hover-underline">
-                  Open roles
+                  Team &amp; roles
                 </Link>
               </li>
               <li>
                 <Link href="/apply" className="hover-underline">
                   Apply
+                </Link>
+              </li>
+              <li>
+                <Link href="/onboarding" className="hover-underline">
+                  Onboarding
                 </Link>
               </li>
             </ul>

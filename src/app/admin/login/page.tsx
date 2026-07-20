@@ -18,13 +18,19 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      router.push("/admin");
+    } catch (err) {
+      console.error(err);
+      setError("Couldn't reach the server. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    router.push("/admin");
   }
 
   return (

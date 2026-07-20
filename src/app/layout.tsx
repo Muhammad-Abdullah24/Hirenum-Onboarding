@@ -16,8 +16,8 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Hirenum Careers | Apply for an Internship",
-  description: "Apply for an internship or role at Hirenum.",
+  title: "Hirenum Careers & Onboarding",
+  description: "Apply to join the Hirenum team, or complete onboarding as a new hire.",
 };
 
 export default function RootLayout({

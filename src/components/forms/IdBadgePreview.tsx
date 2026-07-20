@@ -67,6 +67,11 @@ export function IdBadgePreview({
 
       {allComplete && (
         <div className="id-badge-seal">
+          <span className="id-badge-confetti" aria-hidden="true">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <span key={i} className="confetti-piece" />
+            ))}
+          </span>
           <span>Welcome aboard</span>
         </div>
       )}
