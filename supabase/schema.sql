@@ -33,13 +33,19 @@ alter table applicants enable row level security;
 -- select/update on the table at all. Without these, every insert fails
 -- with "permission denied for table applicants" even though the RLS
 -- policy itself is correct.
-grant insert on applicants to anon;
+grant insert on applicants to anon, authenticated;
 grant select, update on applicants to authenticated;
 
 -- Public applicants can insert their own application (form is unauthenticated).
+-- "to public" (not just "to anon") matters: if whoever is submitting happens
+-- to have an unrelated logged-in Supabase session in the same browser (e.g.
+-- an admin testing the form while still signed into /admin), Supabase sends
+-- that session's "authenticated" token instead of the anon key on every
+-- request -- an anon-only policy would then reject a perfectly legitimate
+-- submission with "row violates row-level security policy".
 create policy "Anyone can submit an application"
   on applicants for insert
-  to anon
+  to public
   with check (true);
 
 -- Only authenticated (HR/admin) users can read or update applicant records.
@@ -137,13 +143,16 @@ alter table onboarding_submissions enable row level security;
 
 -- See the note above the "applicants" grants for why these are needed in
 -- addition to the RLS policies below.
-grant insert on onboarding_submissions to anon;
+grant insert on onboarding_submissions to anon, authenticated;
 grant select, update on onboarding_submissions to authenticated;
 
 -- New hires fill this out unauthenticated, same as the /apply form.
+-- "to public" (not just "to anon") matters: see the matching note above the
+-- "applicants" insert policy -- an unrelated logged-in admin session in the
+-- same browser would otherwise get incorrectly rejected here too.
 create policy "Anyone can submit onboarding paperwork"
   on onboarding_submissions for insert
-  to anon
+  to public
   with check (true);
 
 -- Only Bin Aslam, Noor, and this project's owner account can read/update
@@ -177,9 +186,12 @@ insert into storage.buckets (id, name, public)
 values ('onboarding-documents', 'onboarding-documents', false)
 on conflict (id) do nothing;
 
+-- "to public" (not just "to anon") matters: see the matching note above the
+-- "applicants" insert policy -- an unrelated logged-in admin session in the
+-- same browser would otherwise get incorrectly rejected here too.
 create policy "Anyone can upload onboarding documents"
   on storage.objects for insert
-  to anon
+  to public
   with check (bucket_id = 'onboarding-documents');
 
 create policy "Only onboarding admins can read onboarding documents"

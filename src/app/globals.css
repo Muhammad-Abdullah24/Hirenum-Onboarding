@@ -1717,10 +1717,20 @@ button.admin-photo-thumb:hover {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
 }
+.onboarding-detail-grid > div {
+  /* Grid items default to a min-width based on their content's intrinsic
+     (unbreakable) size -- a long unbroken string like an IBAN or CNIC with
+     no spaces would otherwise force the column wider than its track and
+     visually overlap the next column instead of wrapping. */
+  min-width: 0;
+}
 .detail-label {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 2px;
+}
+.onboarding-detail-grid p {
+  overflow-wrap: anywhere;
 }
 
 /* Apply page redesign: hero split layout */
