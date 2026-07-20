@@ -13,6 +13,8 @@ import {
   ExternalLink,
   Inbox,
   LucideIcon,
+  Download,
+  ImageOff,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { OnboardingSubmission, OnboardingStatus } from "@/lib/onboarding";
@@ -47,6 +49,84 @@ function DocumentLink({ path, label }: { path: string | null; label: string }) {
       <button type="button" className="admin-doc-link" onClick={open} disabled={loading}>
         {loading ? "Loading..." : "View"} {!loading && <ExternalLink size={12} />}
       </button>
+    </div>
+  );
+}
+
+function PhotoField({ path, label }: { path: string | null; label: string }) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    if (!path) return;
+    let cancelled = false;
+    setPreviewUrl(null);
+    setFailed(false);
+    supabase.storage
+      .from("onboarding-documents")
+      .createSignedUrl(path, SIGNED_URL_TTL)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          setFailed(true);
+          return;
+        }
+        setPreviewUrl(data.signedUrl);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
+
+  if (!path) {
+    return (
+      <div>
+        <p className="detail-label">{label}</p>
+        <p style={{ color: "var(--text-secondary)" }}>—</p>
+      </div>
+    );
+  }
+
+  async function handleDownload() {
+    setDownloading(true);
+    const filename = path!.split("/").pop() || "photo.jpg";
+    const { data, error } = await supabase.storage
+      .from("onboarding-documents")
+      .createSignedUrl(path as string, SIGNED_URL_TTL, { download: filename });
+    setDownloading(false);
+    if (!error && data) window.open(data.signedUrl, "_blank", "noreferrer");
+  }
+
+  return (
+    <div>
+      <p className="detail-label">{label}</p>
+      <div className="admin-photo-field">
+        {failed ? (
+          <div className="admin-photo-thumb admin-photo-thumb-error">
+            <ImageOff size={18} />
+          </div>
+        ) : previewUrl ? (
+          <button
+            type="button"
+            className="admin-photo-thumb"
+            onClick={() => window.open(previewUrl, "_blank", "noreferrer")}
+            title="Open full size"
+          >
+            <img src={previewUrl} alt={label} onError={() => setFailed(true)} />
+          </button>
+        ) : (
+          <div className="admin-photo-thumb admin-skeleton-row" />
+        )}
+        <button
+          type="button"
+          className="admin-doc-link"
+          onClick={handleDownload}
+          disabled={downloading}
+        >
+          {downloading ? "Preparing..." : "Download"} {!downloading && <Download size={12} />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -130,8 +210,8 @@ function SubmissionDetail({
           <DetailField label="Nationality" value={s.nationality} />
           <DocumentLink path={s.cnic_front_path} label="CNIC (front)" />
           <DocumentLink path={s.cnic_back_path} label="CNIC (back)" />
-          <DocumentLink path={s.passport_photo_path} label="Passport photo" />
-          <DocumentLink path={s.posts_photo_path} label="Posts photo" />
+          <PhotoField path={s.passport_photo_path} label="Passport photo" />
+          <PhotoField path={s.posts_photo_path} label="Posts photo" />
         </DetailSection>
 
         <DetailSection icon={Phone} title="Contact information">

@@ -151,9 +151,7 @@ export function OnboardingForm() {
     values.nomineeName && values.nomineeCnic && values.nomineeRelationship && values.bloodGroup
   );
 
-  const employmentComplete = Boolean(
-    offerLetter.length && universityProof.length && degreeCertificates.length
-  );
+  const employmentComplete = Boolean(offerLetter.length && universityProof.length);
 
   const allComplete =
     identityComplete &&
@@ -478,7 +476,7 @@ export function OnboardingForm() {
           <div className="space-y-5">
             <FileField id="offerLetter" label="Signed offer letter" required files={offerLetter} onChange={setOfferLetter} />
             <FileField id="universityProof" label="Proof of your stated university" hint="Any document confirming you attended the university you named" required files={universityProof} onChange={setUniversityProof} />
-            <FileField id="degreeCertificates" label="Educational certificates / degrees" multiple required files={degreeCertificates} onChange={setDegreeCertificates} />
+            <FileField id="degreeCertificates" label="Educational certificates / degrees" hint="Optional" multiple files={degreeCertificates} onChange={setDegreeCertificates} />
           </div>
         </FormSection>
 
