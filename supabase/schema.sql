@@ -86,21 +86,31 @@ create policy "Authenticated users can update applicants"
 create table if not exists onboarding_submissions (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  status text not null default 'submitted'
-    check (status in ('submitted', 'reviewed')),
+  -- 'pending' means the client wrote its form fields but hasn't finished
+  -- uploading/attaching documents yet -- see the "pending row first" note
+  -- on the update policy below for why this exists.
+  status text not null default 'pending'
+    check (status in ('pending', 'submitted', 'reviewed')),
 
   -- Identity & personal details
   full_name text not null,
   guardian_name text not null,
   cnic_number text not null,
-  cnic_front_path text not null,
-  cnic_back_path text not null,
+  -- Document path columns are nullable: the client inserts the row as
+  -- 'pending' with these still null, then fills them in and flips status
+  -- to 'submitted' once uploads finish. This means a submission attempt
+  -- is visible in this table the instant it starts, even if the browser
+  -- never completes the uploads (e.g. backgrounded/killed mid-upload on
+  -- mobile) -- previously nothing was written until every upload and the
+  -- insert had already succeeded, so a failed attempt left no trace at all.
+  cnic_front_path text,
+  cnic_back_path text,
   date_of_birth date not null,
   gender text not null check (gender in ('male', 'female', 'other')),
   marital_status text not null
     check (marital_status in ('single', 'married', 'divorced', 'widowed')),
   nationality text not null,
-  passport_photo_path text not null,
+  passport_photo_path text,
   posts_photo_path text,
 
   -- Contact information
@@ -131,9 +141,10 @@ create table if not exists onboarding_submissions (
   nominee_relationship text not null,
   blood_group text not null,
 
-  -- Employment & education
-  offer_letter_path text not null,
-  university_proof_path text not null,
+  -- Employment & education (also nullable -- see the comment on the
+  -- identity document paths above)
+  offer_letter_path text,
+  university_proof_path text,
   degree_certificate_paths text[] not null default '{}',
 
   notes text
@@ -142,9 +153,13 @@ create table if not exists onboarding_submissions (
 alter table onboarding_submissions enable row level security;
 
 -- See the note above the "applicants" grants for why these are needed in
--- addition to the RLS policies below.
-grant insert on onboarding_submissions to anon, authenticated;
-grant select, update on onboarding_submissions to authenticated;
+-- addition to the RLS policies below. "update" is granted to anon too (not
+-- just authenticated): the client writes its own row as 'pending' then
+-- updates it in place with document paths once uploads finish -- see the
+-- "Anyone can complete their own pending submission" policy below, which is
+-- the RLS layer that actually restricts what this grant lets anon touch.
+grant insert, update on onboarding_submissions to anon, authenticated;
+grant select on onboarding_submissions to authenticated;
 
 -- New hires fill this out unauthenticated, same as the /apply form.
 -- "to public" (not just "to anon") matters: see the matching note above the
@@ -155,7 +170,7 @@ create policy "Anyone can submit onboarding paperwork"
   to public
   with check (true);
 
--- Only Bin Aslam, Noor, and this project's owner account can read/update
+-- Only Bin Aslam, Noor, and this project's owner account can read
 -- onboarding submissions -- deliberately NOT "any authenticated user".
 create policy "Only onboarding admins can view submissions"
   on onboarding_submissions for select
@@ -178,6 +193,17 @@ create policy "Only onboarding admins can update submissions"
       'abdullahkaleem0163@gmail.com'
     )
   );
+
+-- Lets an unauthenticated submitter finish writing document paths onto the
+-- 'pending' row they just created (see the status column comment above),
+-- without opening up access to rows that are already submitted/reviewed --
+-- those stay admin-only via the policy above. "to public" for the same
+-- reason as the insert policy above.
+create policy "Anyone can complete their own pending submission"
+  on onboarding_submissions for update
+  to public
+  using (status = 'pending')
+  with check (status in ('pending', 'submitted'));
 
 -- Private storage bucket for onboarding documents (CNIC, offer letter,
 -- degree certs, photos). Unlike "cnic-photos" above, this is NOT public --

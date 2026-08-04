@@ -15,6 +15,9 @@ import {
 } from "@/lib/onboarding";
 
 const DRAFT_KEY = "hirenum-onboarding-draft";
+// Generous per-file ceiling for a slow mobile connection: bounds the worst
+// case instead of leaving an upload hanging with no feedback forever.
+const UPLOAD_TIMEOUT_MS = 60_000;
 
 type TextFieldName =
   | "fullName"
@@ -82,6 +85,10 @@ export function OnboardingForm() {
   const [values, setValues] = useState(emptyValues);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  // Reused across retries so a failed attempt updates the same Supabase row
+  // instead of leaving an orphaned one behind.
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const [cnicFront, setCnicFront] = useState<File[]>([]);
   const [cnicBack, setCnicBack] = useState<File[]>([]);
@@ -95,15 +102,17 @@ export function OnboardingForm() {
     const saved = localStorage.getItem(DRAFT_KEY);
     if (!saved) return;
     try {
-      setValues((v) => ({ ...v, ...JSON.parse(saved) }));
+      const parsed = JSON.parse(saved);
+      setValues((v) => ({ ...v, ...parsed.values }));
+      if (parsed.submissionId) setSubmissionId(parsed.submissionId);
     } catch {
       // ignore corrupt draft
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(values));
-  }, [values]);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, submissionId }));
+  }, [values, submissionId]);
 
   function text(name: TextFieldName) {
     return (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -170,51 +179,30 @@ export function OnboardingForm() {
     }
 
     setLoading(true);
+    setUploadStatus(null);
+
+    // Reuse the id from a previous failed attempt (restored from the draft)
+    // so a retry updates that same row instead of leaving it orphaned as a
+    // second untouched 'pending' row.
+    const id = submissionId ?? crypto.randomUUID();
+    if (!submissionId) setSubmissionId(id);
+
     try {
-      const submissionId = crypto.randomUUID();
-
-      async function uploadOne(file: File, name: string) {
-        const ext = file.name.split(".").pop();
-        const path = `${submissionId}/${name}.${ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from("onboarding-documents")
-          .upload(path, file, { upsert: false });
-        if (uploadError) throw uploadError;
-        return path;
-      }
-
-      const [
-        cnicFrontPath,
-        cnicBackPath,
-        passportPhotoPath,
-        postsPhotoPath,
-        offerLetterPath,
-        universityProofPath,
-        degreeCertificatePaths,
-      ] = await Promise.all([
-        uploadOne(cnicFront[0], "cnic-front"),
-        uploadOne(cnicBack[0], "cnic-back"),
-        uploadOne(passportPhoto[0], "passport-photo"),
-        postsPhoto[0] ? uploadOne(postsPhoto[0], "posts-photo") : Promise.resolve(null),
-        uploadOne(offerLetter[0], "offer-letter"),
-        uploadOne(universityProof[0], "university-proof"),
-        Promise.all(
-          degreeCertificates.map((file, i) => uploadOne(file, `degree-${i}`))
-        ),
-      ]);
-
-      const { error: insertError } = await supabase.from("onboarding_submissions").insert({
+      // Write the row *before* touching any file uploads. This is the key
+      // change: a submission attempt now shows up in Supabase the instant
+      // it starts, even if the uploads below stall or the browser kills the
+      // tab mid-upload (the scenario that let a real attempt vanish with no
+      // trace at all). upsert() makes this safe to repeat on retry.
+      const { error: upsertError } = await supabase.from("onboarding_submissions").upsert({
+        id,
+        status: "pending",
         full_name: values.fullName,
         guardian_name: values.guardianName,
         cnic_number: values.cnicNumber,
-        cnic_front_path: cnicFrontPath,
-        cnic_back_path: cnicBackPath,
         date_of_birth: values.dateOfBirth,
         gender: values.gender,
         marital_status: values.maritalStatus,
         nationality: values.nationality,
-        passport_photo_path: passportPhotoPath,
-        posts_photo_path: postsPhotoPath,
 
         phone: values.phone,
         guardian_phone: values.guardianPhone,
@@ -239,21 +227,88 @@ export function OnboardingForm() {
         nominee_cnic: values.nomineeCnic,
         nominee_relationship: values.nomineeRelationship,
         blood_group: values.bloodGroup,
-
-        offer_letter_path: offerLetterPath,
-        university_proof_path: universityProofPath,
-        degree_certificate_paths: degreeCertificatePaths,
       });
 
-      if (insertError) throw insertError;
+      if (upsertError) throw upsertError;
+
+      async function uploadOne(file: File, name: string) {
+        const ext = file.name.split(".").pop();
+        const path = `${id}/${name}.${ext}`;
+        // supabase-js's storage upload() has no abort/signal option, so this
+        // can't cancel the underlying request -- but it stops the UI from
+        // waiting on it forever and lets the user retry instead of being
+        // stuck on a stalled connection with no feedback.
+        let timeoutId: ReturnType<typeof setTimeout>;
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(`Uploading "${file.name}" timed out. Check your connection and try again.`)),
+            UPLOAD_TIMEOUT_MS
+          );
+        });
+        const upload = supabase.storage
+          .from("onboarding-documents")
+          // upsert: true -- a retry may re-upload a file that already made
+          // it up in a previous partial attempt.
+          .upload(path, file, { upsert: true })
+          .then(({ error: uploadError }) => {
+            if (uploadError) throw uploadError;
+            return path;
+          });
+        try {
+          return await Promise.race([upload, timeout]);
+        } finally {
+          clearTimeout(timeoutId!);
+        }
+      }
+
+      // Sequential, not Promise.all: keeps a weak mobile connection from
+      // having to sustain 6-7 simultaneous uploads at once, and lets the
+      // button show real per-file progress instead of an indefinite spinner.
+      const queue: { file: File; name: string }[] = [
+        { file: cnicFront[0], name: "cnic-front" },
+        { file: cnicBack[0], name: "cnic-back" },
+        { file: passportPhoto[0], name: "passport-photo" },
+        ...(postsPhoto[0] ? [{ file: postsPhoto[0], name: "posts-photo" }] : []),
+        { file: offerLetter[0], name: "offer-letter" },
+        { file: universityProof[0], name: "university-proof" },
+        ...degreeCertificates.map((file, i) => ({ file, name: `degree-${i}` })),
+      ];
+
+      const paths: Record<string, string> = {};
+      for (let i = 0; i < queue.length; i++) {
+        const { file, name } = queue[i];
+        setUploadStatus(`Uploading ${i + 1} of ${queue.length}: ${file.name}`);
+        paths[name] = await uploadOne(file, name);
+      }
+
+      const { error: updateError } = await supabase
+        .from("onboarding_submissions")
+        .update({
+          status: "submitted",
+          cnic_front_path: paths["cnic-front"],
+          cnic_back_path: paths["cnic-back"],
+          passport_photo_path: paths["passport-photo"],
+          posts_photo_path: paths["posts-photo"] ?? null,
+          offer_letter_path: paths["offer-letter"],
+          university_proof_path: paths["university-proof"],
+          degree_certificate_paths: degreeCertificates.map((_, i) => paths[`degree-${i}`]),
+        })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
 
       localStorage.removeItem(DRAFT_KEY);
       router.push("/onboarding/success");
     } catch (err) {
       console.error(err);
-      setError("Something went wrong submitting your paperwork. Please try again.");
+      setError(
+        err instanceof Error && err.message.includes("timed out")
+          ? err.message
+          : "Something went wrong submitting your paperwork. Your progress was saved — please try again."
+      );
     } finally {
       setLoading(false);
+      setUploadStatus(null);
     }
   }
 
@@ -487,7 +542,9 @@ export function OnboardingForm() {
         )}
 
         <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-          <span>{loading ? "Submitting..." : "Submit onboarding paperwork"}</span>
+          <span>
+            {loading ? uploadStatus ?? "Submitting..." : "Submit onboarding paperwork"}
+          </span>
         </button>
       </div>
 

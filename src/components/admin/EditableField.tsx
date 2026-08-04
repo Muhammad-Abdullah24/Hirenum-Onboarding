@@ -57,17 +57,15 @@ export function EditableField({
     return (
       <div className="admin-editable-field">
         <p className="detail-label">{label}</p>
-        <div className="admin-editable-field-row">
-          <p>{value || "–"}</p>
-          <button
-            type="button"
-            className="admin-editable-field-edit"
-            onClick={startEdit}
-            aria-label={`Edit ${label}`}
-          >
-            <Pencil size={12} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="admin-editable-field-row"
+          onClick={startEdit}
+          aria-label={`Edit ${label}`}
+        >
+          <span className="admin-editable-field-value">{value || "–"}</span>
+          <Pencil size={12} className="admin-editable-field-edit" />
+        </button>
       </div>
     );
   }

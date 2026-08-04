@@ -1,12 +1,13 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Users, IdCard, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Eyebrow } from "@/components/ui/Eyebrow";
+import { AdminAvatar } from "@/components/admin/AdminAvatar";
 
 const navItems = [
   { href: "/admin", label: "Applicants", icon: Users },
@@ -26,6 +27,11 @@ export function AdminShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+  }, []);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -61,11 +67,21 @@ export function AdminShell({
         </nav>
 
         <div className="admin-sidebar-footer">
-          <ThemeToggle />
-          <button type="button" className="admin-sidebar-signout" onClick={signOut}>
-            <LogOut size={16} />
-            <span>Sign out</span>
-          </button>
+          {email && (
+            <div className="admin-sidebar-user">
+              <AdminAvatar name={email} size={30} />
+              <span className="admin-sidebar-user-email" title={email}>
+                {email}
+              </span>
+            </div>
+          )}
+          <div className="admin-sidebar-footer-actions">
+            <ThemeToggle />
+            <button type="button" className="admin-sidebar-signout" onClick={signOut}>
+              <LogOut size={16} />
+              <span>Sign out</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -105,7 +121,9 @@ export function AdminShell({
           {actions && <div className="admin-topbar-actions">{actions}</div>}
         </header>
 
-        <div className="admin-content">{children}</div>
+        <div className="admin-content" key={pathname}>
+          {children}
+        </div>
       </div>
     </div>
   );

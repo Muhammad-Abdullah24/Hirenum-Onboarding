@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, ExternalLink, Users } from "lucide-react";
+import {
+  Search,
+  ExternalLink,
+  Users,
+  FileText,
+  Star,
+  Send,
+  CheckCircle2,
+  XCircle,
+  LucideIcon,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Applicant, ApplicantStatus } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -22,6 +32,14 @@ const statusLabels: Record<ApplicantStatus, string> = {
   offer_sent: "Offer sent",
   completed: "Completed",
   rejected: "Not selected",
+};
+
+const statusIcons: Record<ApplicantStatus, LucideIcon> = {
+  applied: FileText,
+  shortlisted: Star,
+  offer_sent: Send,
+  completed: CheckCircle2,
+  rejected: XCircle,
 };
 
 export function ApplicantsTable() {
@@ -92,20 +110,25 @@ export function ApplicantsTable() {
           className={`admin-stat-tile ${filter === "all" ? "is-active" : ""}`}
           onClick={() => setFilter("all")}
         >
+          <Users size={15} className="admin-stat-icon" />
           <span className="admin-stat-value">{counts.all}</span>
           <span className="admin-stat-label">All</span>
         </button>
-        {statusOrder.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className={`admin-stat-tile admin-stat-tile-${s} ${filter === s ? "is-active" : ""}`}
-            onClick={() => setFilter(s)}
-          >
-            <span className="admin-stat-value">{counts[s] ?? 0}</span>
-            <span className="admin-stat-label">{statusLabels[s]}</span>
-          </button>
-        ))}
+        {statusOrder.map((s) => {
+          const Icon = statusIcons[s];
+          return (
+            <button
+              key={s}
+              type="button"
+              className={`admin-stat-tile admin-stat-tile-${s} ${filter === s ? "is-active" : ""}`}
+              onClick={() => setFilter(s)}
+            >
+              <Icon size={15} className="admin-stat-icon" />
+              <span className="admin-stat-value">{counts[s] ?? 0}</span>
+              <span className="admin-stat-label">{statusLabels[s]}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="admin-toolbar">
@@ -126,7 +149,9 @@ export function ApplicantsTable() {
 
       {visible.length === 0 ? (
         <div className="admin-empty">
-          <Users size={28} className="admin-empty-icon" />
+          <span className="admin-empty-icon-circle">
+            <Users size={22} />
+          </span>
           <p>No applicants match this view.</p>
         </div>
       ) : (

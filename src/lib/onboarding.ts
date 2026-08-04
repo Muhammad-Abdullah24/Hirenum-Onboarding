@@ -29,7 +29,7 @@ export const bloodGroupOptions = [
   { value: "unknown", label: "Not sure" },
 ];
 
-export type OnboardingStatus = "submitted" | "reviewed";
+export type OnboardingStatus = "pending" | "submitted" | "reviewed";
 
 export interface OnboardingSubmission {
   id: string;
@@ -39,13 +39,13 @@ export interface OnboardingSubmission {
   full_name: string;
   guardian_name: string;
   cnic_number: string;
-  cnic_front_path: string;
-  cnic_back_path: string;
+  cnic_front_path: string | null;
+  cnic_back_path: string | null;
   date_of_birth: string;
   gender: string;
   marital_status: string;
   nationality: string;
-  passport_photo_path: string;
+  passport_photo_path: string | null;
   posts_photo_path: string | null;
 
   phone: string;
@@ -72,8 +72,8 @@ export interface OnboardingSubmission {
   nominee_relationship: string;
   blood_group: string;
 
-  offer_letter_path: string;
-  university_proof_path: string;
+  offer_letter_path: string | null;
+  university_proof_path: string | null;
   degree_certificate_paths: string[];
 
   notes: string | null;
