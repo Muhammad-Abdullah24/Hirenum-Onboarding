@@ -2,7 +2,6 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Eyebrow } from "@/components/ui/Eyebrow";
@@ -77,9 +76,6 @@ export default function AdminLoginPage() {
               <span>{loading ? "Signing in..." : "Sign in"}</span>
             </button>
           </form>
-          <p className="text-sm mt-6 text-center opacity-70">
-            First time? <Link href="/admin/signup">Create your account</Link>
-          </p>
         </GlassCard>
       </div>
     </main>

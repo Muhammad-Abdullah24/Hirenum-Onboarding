@@ -14,17 +14,9 @@ export default function AdminOnboardingPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        setChecked(true);
-        router.push("/admin/login");
-        return;
-      }
-      if (data.session.user.user_metadata?.password_set === false) {
-        router.push("/admin/signup");
-        return;
-      }
       setSession(data.session);
       setChecked(true);
+      if (!data.session) router.push("/admin/login");
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {

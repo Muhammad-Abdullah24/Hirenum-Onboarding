@@ -17,8 +17,16 @@ import {
   ImageOff,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { OnboardingSubmission, OnboardingStatus } from "@/lib/onboarding";
+import {
+  OnboardingSubmission,
+  OnboardingStatus,
+  genderOptions,
+  maritalStatusOptions,
+  fbrFilerOptions,
+  bloodGroupOptions,
+} from "@/lib/onboarding";
 import { AdminAvatar } from "@/components/admin/AdminAvatar";
+import { EditableField } from "@/components/admin/EditableField";
 
 const SIGNED_URL_TTL = 60;
 
@@ -131,15 +139,6 @@ function PhotoField({ path, label }: { path: string | null; label: string }) {
   );
 }
 
-function DetailField({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div>
-      <p className="detail-label">{label}</p>
-      <p>{value || "–"}</p>
-    </div>
-  );
-}
-
 function DetailSection({
   icon: Icon,
   title,
@@ -163,13 +162,17 @@ function DetailSection({
 function SubmissionDetail({
   submission,
   onStatusChange,
+  onFieldSave,
   onBack,
 }: {
   submission: OnboardingSubmission;
   onStatusChange: (id: string, status: OnboardingStatus) => void;
+  onFieldSave: (id: string, field: keyof OnboardingSubmission, value: string) => Promise<void>;
   onBack: () => void;
 }) {
   const s = submission;
+  const save = (field: keyof OnboardingSubmission) => (value: string) =>
+    onFieldSave(s.id, field, value);
   return (
     <div className="glass-card admin-detail-panel">
       <button type="button" className="admin-detail-back" onClick={onBack}>
@@ -201,13 +204,32 @@ function SubmissionDetail({
 
       <div className="admin-detail-sections">
         <DetailSection icon={IdCard} title="Identity & personal details">
-          <DetailField label="Full name" value={s.full_name} />
-          <DetailField label="Father's / husband's name" value={s.guardian_name} />
-          <DetailField label="CNIC number" value={s.cnic_number} />
-          <DetailField label="Date of birth" value={s.date_of_birth} />
-          <DetailField label="Gender" value={s.gender} />
-          <DetailField label="Marital status" value={s.marital_status} />
-          <DetailField label="Nationality" value={s.nationality} />
+          <EditableField label="Full name" value={s.full_name} onSave={save("full_name")} />
+          <EditableField
+            label="Father's / husband's name"
+            value={s.guardian_name}
+            onSave={save("guardian_name")}
+          />
+          <EditableField label="CNIC number" value={s.cnic_number} onSave={save("cnic_number")} />
+          <EditableField
+            label="Date of birth"
+            value={s.date_of_birth}
+            onSave={save("date_of_birth")}
+            type="date"
+          />
+          <EditableField
+            label="Gender"
+            value={s.gender}
+            onSave={save("gender")}
+            options={genderOptions}
+          />
+          <EditableField
+            label="Marital status"
+            value={s.marital_status}
+            onSave={save("marital_status")}
+            options={maritalStatusOptions}
+          />
+          <EditableField label="Nationality" value={s.nationality} onSave={save("nationality")} />
           <DocumentLink path={s.cnic_front_path} label="CNIC (front)" />
           <DocumentLink path={s.cnic_back_path} label="CNIC (back)" />
           <PhotoField path={s.passport_photo_path} label="Passport photo" />
@@ -215,38 +237,91 @@ function SubmissionDetail({
         </DetailSection>
 
         <DetailSection icon={Phone} title="Contact information">
-          <DetailField label="Phone" value={s.phone} />
-          <DetailField label="Father's / husband's phone" value={s.guardian_phone} />
-          <DetailField label="Email" value={s.email} />
-          <DetailField label="Current address" value={s.current_address} />
-          <DetailField label="Permanent address" value={s.permanent_address} />
-          <DetailField
-            label="Emergency contact"
-            value={`${s.emergency_contact_1_name} (${s.emergency_contact_1_relationship}) · ${s.emergency_contact_1_phone}`}
+          <EditableField label="Phone" value={s.phone} onSave={save("phone")} />
+          <EditableField
+            label="Father's / husband's phone"
+            value={s.guardian_phone}
+            onSave={save("guardian_phone")}
           />
-          {s.emergency_contact_2_name && (
-            <DetailField
-              label="Second emergency contact"
-              value={`${s.emergency_contact_2_name} (${s.emergency_contact_2_relationship}) · ${s.emergency_contact_2_phone}`}
-            />
-          )}
+          <EditableField label="Email" value={s.email} onSave={save("email")} />
+          <EditableField
+            label="Current address"
+            value={s.current_address}
+            onSave={save("current_address")}
+          />
+          <EditableField
+            label="Permanent address"
+            value={s.permanent_address}
+            onSave={save("permanent_address")}
+          />
+          <EditableField
+            label="Emergency contact name"
+            value={s.emergency_contact_1_name}
+            onSave={save("emergency_contact_1_name")}
+          />
+          <EditableField
+            label="Emergency contact relationship"
+            value={s.emergency_contact_1_relationship}
+            onSave={save("emergency_contact_1_relationship")}
+          />
+          <EditableField
+            label="Emergency contact phone"
+            value={s.emergency_contact_1_phone}
+            onSave={save("emergency_contact_1_phone")}
+          />
+          <EditableField
+            label="Second emergency contact name"
+            value={s.emergency_contact_2_name ?? ""}
+            onSave={save("emergency_contact_2_name")}
+          />
+          <EditableField
+            label="Second emergency contact relationship"
+            value={s.emergency_contact_2_relationship ?? ""}
+            onSave={save("emergency_contact_2_relationship")}
+          />
+          <EditableField
+            label="Second emergency contact phone"
+            value={s.emergency_contact_2_phone ?? ""}
+            onSave={save("emergency_contact_2_phone")}
+          />
         </DetailSection>
 
         <DetailSection icon={Landmark} title="Payroll & tax">
-          <DetailField label="Bank name" value={s.bank_name} />
-          <DetailField label="Branch" value={s.bank_branch} />
-          <DetailField label="Account title" value={s.account_title} />
-          <DetailField label="Account number" value={s.account_number} />
-          <DetailField label="IBAN" value={s.iban} />
-          <DetailField label="FBR filer status" value={s.fbr_filer_status} />
+          <EditableField label="Bank name" value={s.bank_name} onSave={save("bank_name")} />
+          <EditableField label="Branch" value={s.bank_branch} onSave={save("bank_branch")} />
+          <EditableField
+            label="Account title"
+            value={s.account_title}
+            onSave={save("account_title")}
+          />
+          <EditableField
+            label="Account number"
+            value={s.account_number}
+            onSave={save("account_number")}
+          />
+          <EditableField label="IBAN" value={s.iban} onSave={save("iban")} />
+          <EditableField
+            label="FBR filer status"
+            value={s.fbr_filer_status}
+            onSave={save("fbr_filer_status")}
+            options={fbrFilerOptions}
+          />
         </DetailSection>
 
         <DetailSection icon={ShieldCheck} title="Statutory & benefits">
-          <DetailField
-            label="Nominee"
-            value={`${s.nominee_name} (${s.nominee_relationship}) · ${s.nominee_cnic}`}
+          <EditableField label="Nominee name" value={s.nominee_name} onSave={save("nominee_name")} />
+          <EditableField
+            label="Nominee relationship"
+            value={s.nominee_relationship}
+            onSave={save("nominee_relationship")}
           />
-          <DetailField label="Blood group" value={s.blood_group} />
+          <EditableField label="Nominee CNIC" value={s.nominee_cnic} onSave={save("nominee_cnic")} />
+          <EditableField
+            label="Blood group"
+            value={s.blood_group}
+            onSave={save("blood_group")}
+            options={bloodGroupOptions}
+          />
         </DetailSection>
 
         <DetailSection icon={GraduationCap} title="Employment & education">
@@ -284,6 +359,15 @@ export function OnboardingTable() {
   async function handleStatusChange(id: string, status: OnboardingStatus) {
     setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
     await supabase.from("onboarding_submissions").update({ status }).eq("id", id);
+  }
+
+  async function handleFieldSave(id: string, field: keyof OnboardingSubmission, value: string) {
+    const { error } = await supabase
+      .from("onboarding_submissions")
+      .update({ [field]: value })
+      .eq("id", id);
+    if (error) throw error;
+    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   }
 
   const counts = useMemo(
@@ -407,6 +491,7 @@ export function OnboardingTable() {
             <SubmissionDetail
               submission={selected}
               onStatusChange={handleStatusChange}
+              onFieldSave={handleFieldSave}
               onBack={() => setSelectedId(null)}
             />
           ) : (

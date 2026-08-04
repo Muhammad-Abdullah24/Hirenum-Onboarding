@@ -1733,6 +1733,63 @@ button.admin-photo-thumb:hover {
   overflow-wrap: anywhere;
 }
 
+.admin-editable-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-editable-field-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.admin-editable-field:hover .admin-editable-field-edit,
+.admin-editable-field-edit:focus-visible {
+  opacity: 1;
+}
+.admin-editable-field-edit:hover {
+  color: var(--accent);
+}
+.admin-editable-field-input {
+  padding: 0.4rem 0.6rem;
+  font-size: 13px;
+}
+.admin-editable-field-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.admin-editable-field-save,
+.admin-editable-field-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+.admin-editable-field-save {
+  color: var(--accent);
+}
+.admin-editable-field-cancel {
+  color: var(--text-secondary);
+}
+.admin-editable-field-save:disabled,
+.admin-editable-field-cancel:disabled {
+  opacity: 0.5;
+}
+.admin-editable-field-error {
+  font-size: 12px;
+  color: #e24b4a;
+  margin-top: 4px;
+}
+
 /* Apply page redesign: hero split layout */
 .apply-hero-grid {
   display: grid;
