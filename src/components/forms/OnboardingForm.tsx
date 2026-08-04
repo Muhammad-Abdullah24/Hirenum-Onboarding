@@ -247,11 +247,16 @@ export function OnboardingForm() {
         });
         const upload = supabase.storage
           .from("onboarding-documents")
-          // upsert: true -- a retry may re-upload a file that already made
-          // it up in a previous partial attempt.
-          .upload(path, file, { upsert: true })
+          .upload(path, file, { upsert: false })
           .then(({ error: uploadError }) => {
-            if (uploadError) throw uploadError;
+            // upsert: true would need select+update RLS grants on this
+            // bucket, which is deliberately locked to admin-only reads (see
+            // the bucket comment above) -- so instead treat "already
+            // exists" as success. That happens on a retry re-uploading a
+            // file that made it up in a previous partial attempt.
+            const isDuplicate =
+              uploadError && "statusCode" in uploadError && uploadError.statusCode === "409";
+            if (uploadError && !isDuplicate) throw uploadError;
             return path;
           });
         try {
