@@ -254,11 +254,21 @@ export function OnboardingForm() {
             // the bucket comment above) -- so instead treat "already
             // exists" as success. That happens on a retry re-uploading a
             // file that made it up in a previous partial attempt.
-            const isDuplicate =
-              uploadError && "statusCode" in uploadError && uploadError.statusCode === "409";
+            // Verified directly against the live Supabase Storage API: a
+            // duplicate-key conflict comes back as HTTP 400 (so
+            // `error.status` is 400, NOT 409) with a JSON body of
+            // { statusCode: "409", error: "Duplicate", message: "The
+            // resource already exists" } -- storage-js surfaces that body
+            // "statusCode" string as `error.statusCode`, which is the field
+            // that's actually reliable here.
+            const isDuplicate = uploadError?.statusCode === "409";
             if (uploadError && !isDuplicate) throw uploadError;
             return path;
           });
+        // If this loses the race to the timeout below, nothing else will be
+        // listening when it eventually settles -- attach a no-op catch so a
+        // late failure doesn't surface as an unhandled promise rejection.
+        upload.catch(() => {});
         try {
           return await Promise.race([upload, timeout]);
         } finally {

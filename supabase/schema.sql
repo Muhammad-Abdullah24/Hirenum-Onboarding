@@ -153,13 +153,17 @@ create table if not exists onboarding_submissions (
 alter table onboarding_submissions enable row level security;
 
 -- See the note above the "applicants" grants for why these are needed in
--- addition to the RLS policies below. "update" is granted to anon too (not
--- just authenticated): the client writes its own row as 'pending' then
--- updates it in place with document paths once uploads finish -- see the
--- "Anyone can complete their own pending submission" policy below, which is
--- the RLS layer that actually restricts what this grant lets anon touch.
-grant insert, update on onboarding_submissions to anon, authenticated;
-grant select on onboarding_submissions to authenticated;
+-- addition to the RLS policies below. "select" and "update" are granted to
+-- anon too (not just authenticated): the client writes its own row as
+-- 'pending' then updates it in place with document paths once uploads
+-- finish. SELECT is required even though anon never reads submissions back
+-- -- Postgres needs it to evaluate the WHERE/RLS conditions ("id = ..." and
+-- "status = 'pending'") on UPDATE, not just to return rows. The "Anyone can
+-- complete their own pending submission" policy below is the RLS layer that
+-- actually restricts which rows/columns this grant lets anon touch -- the
+-- grant alone doesn't let anon read arbitrary rows, since every row anon
+-- could target this way is one whose id it already generated client-side.
+grant insert, select, update on onboarding_submissions to anon, authenticated;
 
 -- New hires fill this out unauthenticated, same as the /apply form.
 -- "to public" (not just "to anon") matters: see the matching note above the
