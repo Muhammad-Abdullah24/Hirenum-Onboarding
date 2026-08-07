@@ -192,10 +192,20 @@ export function OnboardingForm() {
       // change: a submission attempt now shows up in Supabase the instant
       // it starts, even if the uploads below stall or the browser kills the
       // tab mid-upload (the scenario that let a real attempt vanish with no
-      // trace at all). upsert() makes this safe to repeat on retry.
-      const { error: upsertError } = await supabase.from("onboarding_submissions").upsert({
-        id,
-        status: "pending",
+      // trace at all).
+      //
+      // This is a plain insert(), not upsert(). Verified directly against
+      // the live database: upsert() -- which Postgres runs as INSERT ...
+      // ON CONFLICT DO UPDATE -- was rejected by RLS here even for a
+      // brand-new row, because Postgres requires *both* the INSERT and
+      // UPDATE policies to permit the statement whenever ON CONFLICT DO
+      // UPDATE is present, regardless of whether a conflict actually
+      // occurs at runtime. A retry (id already has a row from a failed
+      // earlier attempt) instead hits the unique-constraint conflict below
+      // and falls back to a plain update(), which only needs the UPDATE
+      // policy and was independently verified to work.
+      const fields = {
+        status: "pending" as const,
         full_name: values.fullName,
         guardian_name: values.guardianName,
         cnic_number: values.cnicNumber,
@@ -227,13 +237,34 @@ export function OnboardingForm() {
         nominee_cnic: values.nomineeCnic,
         nominee_relationship: values.nomineeRelationship,
         blood_group: values.bloodGroup,
-      });
+      };
 
-      if (upsertError) throw upsertError;
+      const { error: insertError } = await supabase
+        .from("onboarding_submissions")
+        .insert({ id, ...fields });
+
+      if (insertError) {
+        // 23505 = Postgres unique-violation -- this id already has a row
+        // from a previous attempt, so update it in place instead.
+        if (insertError.code !== "23505") throw insertError;
+        const { error: retryUpdateError } = await supabase
+          .from("onboarding_submissions")
+          .update(fields)
+          .eq("id", id);
+        if (retryUpdateError) throw retryUpdateError;
+      }
 
       async function uploadOne(file: File, name: string) {
         const ext = file.name.split(".").pop();
-        const path = `${id}/${name}.${ext}`;
+        // Unique per upload attempt, not just per submission: a retry might
+        // re-select a *different* file for a field that already uploaded
+        // successfully in an earlier failed attempt. Reusing the same path
+        // there would mean either silently keeping the old file (if we
+        // treated the resulting conflict as "already done, fine") or a
+        // conflict error blocking a legitimate retry -- a fresh path every
+        // time sidesteps both. The old attempt's file is just left orphaned
+        // in storage, unreferenced by any submission row.
+        const path = `${id}/${name}-${crypto.randomUUID()}.${ext}`;
         // supabase-js's storage upload() has no abort/signal option, so this
         // can't cancel the underlying request -- but it stops the UI from
         // waiting on it forever and lets the user retry instead of being
@@ -249,20 +280,7 @@ export function OnboardingForm() {
           .from("onboarding-documents")
           .upload(path, file, { upsert: false })
           .then(({ error: uploadError }) => {
-            // upsert: true would need select+update RLS grants on this
-            // bucket, which is deliberately locked to admin-only reads (see
-            // the bucket comment above) -- so instead treat "already
-            // exists" as success. That happens on a retry re-uploading a
-            // file that made it up in a previous partial attempt.
-            // Verified directly against the live Supabase Storage API: a
-            // duplicate-key conflict comes back as HTTP 400 (so
-            // `error.status` is 400, NOT 409) with a JSON body of
-            // { statusCode: "409", error: "Duplicate", message: "The
-            // resource already exists" } -- storage-js surfaces that body
-            // "statusCode" string as `error.statusCode`, which is the field
-            // that's actually reliable here.
-            const isDuplicate = uploadError?.statusCode === "409";
-            if (uploadError && !isDuplicate) throw uploadError;
+            if (uploadError) throw uploadError;
             return path;
           });
         // If this loses the race to the timeout below, nothing else will be
