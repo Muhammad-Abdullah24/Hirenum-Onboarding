@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Layers, Clock, ShieldCheck } from "lucide-react";
 import { Nav } from "@/components/layout/Nav";
 import { Footer } from "@/components/layout/Footer";
 import { AuroraBackground } from "@/components/layout/AuroraBackground";
@@ -53,6 +54,20 @@ export default function OnboardingPage() {
                 A few details for HR and payroll. Your progress is saved as
                 you go, so feel free to gather documents and come back.
               </p>
+              <div className="onboarding-trust-row anim-fade-up-4">
+                <span className="onboarding-trust-chip">
+                  <Layers size={14} aria-hidden="true" />
+                  5 quick sections
+                </span>
+                <span className="onboarding-trust-chip">
+                  <Clock size={14} aria-hidden="true" />
+                  About 10 minutes
+                </span>
+                <span className="onboarding-trust-chip">
+                  <ShieldCheck size={14} aria-hidden="true" />
+                  Encrypted, HR-only access
+                </span>
+              </div>
             </div>
             <div className="anim-fade-up-2">
               <OnboardingForm />

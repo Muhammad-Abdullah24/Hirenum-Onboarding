@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, FormEvent, ChangeEvent } from "react";
+import { useEffect, useRef, useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/Select";
 import { FileField } from "@/components/ui/FileField";
 import { FormSection } from "@/components/forms/FormSection";
 import { IdBadgePreview } from "@/components/forms/IdBadgePreview";
+import { Stepper } from "@/components/forms/Stepper";
 import {
   genderOptions,
   maritalStatusOptions,
@@ -80,6 +82,8 @@ const emptyValues: Record<TextFieldName, string> = {
   bloodGroup: "",
 };
 
+const STEP_COUNT = 5;
+
 export function OnboardingForm() {
   const router = useRouter();
   const [values, setValues] = useState(emptyValues);
@@ -89,6 +93,10 @@ export function OnboardingForm() {
   // Reused across retries so a failed attempt updates the same Supabase row
   // instead of leaving an orphaned one behind.
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const formRef = useRef<HTMLFormElement>(null);
+  const isFirstRender = useRef(true);
 
   const [cnicFront, setCnicFront] = useState<File[]>([]);
   const [cnicBack, setCnicBack] = useState<File[]>([]);
@@ -105,14 +113,57 @@ export function OnboardingForm() {
       const parsed = JSON.parse(saved);
       setValues((v) => ({ ...v, ...parsed.values }));
       if (parsed.submissionId) setSubmissionId(parsed.submissionId);
+      if (typeof parsed.step === "number") {
+        setStep(Math.min(Math.max(parsed.step, 0), STEP_COUNT - 1));
+      }
     } catch {
       // ignore corrupt draft
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, submissionId }));
-  }, [values, submissionId]);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ values, submissionId, step }));
+  }, [values, submissionId, step]);
+
+  // Skip the scroll on first mount (including the draft-restored step) so
+  // returning to a saved step doesn't yank the page on load -- only actual
+  // step changes from Back/Next/the stepper should scroll.
+  //
+  // Scrolls to the top of the whole <form> (Stepper included), not just the
+  // active step's column -- anchoring to the column alone pushed the
+  // Stepper's progress bar off the top of the viewport, under the sticky
+  // nav, defeating the point of showing live progress after every step.
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const el = formRef.current;
+    if (!el) return;
+    const navHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-height")) || 80;
+    const top = el.getBoundingClientRect().top + window.scrollY - navHeight - 24;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, [step]);
+
+  function goToStep(index: number) {
+    const target = Math.min(Math.max(index, 0), STEP_COUNT - 1);
+    setDirection(target >= step ? 1 : -1);
+    setStep(target);
+  }
+
+  function magneticMove(e: React.MouseEvent<HTMLButtonElement>) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    btn.style.setProperty("--magnet-x", `${x * 0.25}px`);
+    btn.style.setProperty("--magnet-y", `${y * 0.35}px`);
+  }
+
+  function magneticLeave(e: React.MouseEvent<HTMLButtonElement>) {
+    e.currentTarget.style.setProperty("--magnet-x", "0px");
+    e.currentTarget.style.setProperty("--magnet-y", "0px");
+  }
 
   function text(name: TextFieldName) {
     return (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -169,11 +220,21 @@ export function OnboardingForm() {
     statutoryComplete &&
     employmentComplete;
 
+  const steps = [
+    { label: "Identity & personal details", complete: identityComplete },
+    { label: "Contact information", complete: contactComplete },
+    { label: "Payroll & tax", complete: payrollComplete },
+    { label: "Statutory & benefits", complete: statutoryComplete },
+    { label: "Employment & education", complete: employmentComplete },
+  ];
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (!allComplete) {
+      const firstIncomplete = steps.findIndex((s) => !s.complete);
+      if (firstIncomplete !== -1) goToStep(firstIncomplete);
       setError("Please fill in every required field and document before submitting.");
       return;
     }
@@ -345,29 +406,13 @@ export function OnboardingForm() {
     }
   }
 
-  const badgeSections = [
-    { label: "Identity & personal details", complete: identityComplete },
-    { label: "Contact information", complete: contactComplete },
-    { label: "Payroll & tax", complete: payrollComplete },
-    { label: "Statutory & benefits", complete: statutoryComplete },
-    { label: "Employment & education", complete: employmentComplete },
-  ];
-
-  const completedCount = badgeSections.filter((s) => s.complete).length;
-
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
-      <div className={`onboarding-progress ${completedCount > 0 ? "has-progress" : ""}`}>
-        <div className="onboarding-progress-track">
-          <div
-            className="onboarding-progress-fill"
-            style={{ width: `${(completedCount / badgeSections.length) * 100}%` }}
-          />
-        </div>
-        <p className="onboarding-progress-label">
-          {completedCount} of {badgeSections.length} sections complete
-        </p>
-      </div>
+    <form
+      onSubmit={handleSubmit}
+      ref={formRef}
+      className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start"
+    >
+      <Stepper steps={steps} currentStep={step} onStepClick={goToStep} disabled={loading} />
 
       <div className="space-y-6">
         <p className="required-legend">
@@ -375,6 +420,8 @@ export function OnboardingForm() {
           Required field
         </p>
 
+        <div className={`step-panel ${direction === 1 ? "step-panel-forward" : "step-panel-back"}`} key={step}>
+        {step === 0 && (
         <FormSection
           index={1}
           title="Identity & personal details"
@@ -431,7 +478,9 @@ export function OnboardingForm() {
             </div>
           </div>
         </FormSection>
+        )}
 
+        {step === 1 && (
         <FormSection
           index={2}
           title="Contact information"
@@ -484,7 +533,9 @@ export function OnboardingForm() {
             </div>
           </div>
         </FormSection>
+        )}
 
+        {step === 2 && (
         <FormSection
           index={3}
           title="Payroll & tax"
@@ -525,7 +576,9 @@ export function OnboardingForm() {
             </div>
           </div>
         </FormSection>
+        )}
 
+        {step === 3 && (
         <FormSection
           index={4}
           title="Statutory & benefits"
@@ -554,7 +607,9 @@ export function OnboardingForm() {
             </div>
           </div>
         </FormSection>
+        )}
 
+        {step === 4 && (
         <FormSection
           index={5}
           title="Employment & education"
@@ -567,6 +622,8 @@ export function OnboardingForm() {
             <FileField id="degreeCertificates" label="Educational certificates / degrees" hint="Optional" multiple files={degreeCertificates} onChange={setDegreeCertificates} />
           </div>
         </FormSection>
+        )}
+        </div>
 
         {error && (
           <p className="text-sm" style={{ color: "#e24b4a" }}>
@@ -574,11 +631,41 @@ export function OnboardingForm() {
           </p>
         )}
 
-        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-          <span>
-            {loading ? uploadStatus ?? "Submitting..." : "Submit onboarding paperwork"}
-          </span>
-        </button>
+        <div className="wizard-actions">
+          {step > 0 && (
+            <button type="button" className="btn btn-ghost" onClick={() => goToStep(step - 1)} disabled={loading}>
+              <ArrowLeft size={16} aria-hidden="true" />
+              <span>Back</span>
+            </button>
+          )}
+          <div className="wizard-actions-end">
+            {step < STEP_COUNT - 1 ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => goToStep(step + 1)}
+                onMouseMove={magneticMove}
+                onMouseLeave={magneticLeave}
+                disabled={loading}
+              >
+                <span>Continue</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="btn btn-primary"
+                onMouseMove={magneticMove}
+                onMouseLeave={magneticLeave}
+                disabled={loading}
+              >
+                <span>
+                  {loading ? uploadStatus ?? "Submitting..." : "Submit onboarding paperwork"}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="onboarding-badge-rail">
@@ -586,7 +673,7 @@ export function OnboardingForm() {
           fullName={values.fullName}
           photoFile={passportPhoto[0] ?? null}
           nationality={values.nationality}
-          sections={badgeSections}
+          sections={steps}
           allComplete={allComplete}
         />
       </div>
