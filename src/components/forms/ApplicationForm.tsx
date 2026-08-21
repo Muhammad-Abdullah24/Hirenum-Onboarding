@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { guardianOptions } from "@/lib/guardians";
+import { errorDetail } from "@/lib/errors";
 import { Select } from "@/components/ui/Select";
 
 export function ApplicationForm() {
@@ -61,7 +62,7 @@ export function ApplicationForm() {
     } catch (err) {
       console.error(err);
       setError(
-        "Something went wrong submitting your application. Please try again."
+        `Something went wrong submitting your application: ${errorDetail(err)}`
       );
     } finally {
       setLoading(false);

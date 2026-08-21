@@ -59,10 +59,39 @@ create policy "Authenticated users can update applicants"
   to authenticated
   using (true);
 
--- Storage: create a public bucket for CNIC photos via the dashboard
--- (Storage -> New bucket -> name it "cnic-photos", public = true for MVP).
+-- Storage: public bucket for the CNIC photo collected by /apply.
+--
+-- This used to be a comment telling you to create the bucket by hand in the
+-- dashboard (Storage -> New bucket). That step is easy to miss, and when it
+-- is missed every /apply submission dies on the upload with a "Bucket not
+-- found" (NoSuchBucket) error -- which the form then reported as a generic
+-- "something went wrong", so the real cause never surfaced. Creating it
+-- here means applying this file is sufficient, same as the
+-- "onboarding-documents" bucket further down.
+insert into storage.buckets (id, name, public)
+values ('cnic-photos', 'cnic-photos', true)
+on conflict (id) do nothing;
+
+-- Public applicants upload their CNIC photo unauthenticated. "to public"
+-- (not just "to anon") for the same reason as the applicants insert policy
+-- above -- a stray logged-in admin session in the same browser sends an
+-- "authenticated" token instead of the anon key.
+-- create policy has no "if not exists", and this block is the one people
+-- will paste into the SQL editor on its own to repair an existing project --
+-- so drop first to keep re-running it safe.
+drop policy if exists "Anyone can upload a CNIC photo" on storage.objects;
+create policy "Anyone can upload a CNIC photo"
+  on storage.objects for insert
+  to public
+  with check (bucket_id = 'cnic-photos');
+
+-- The bucket is public = true, so reads go through the public URL stored in
+-- applicants.cnic_photo_url and need no select policy here.
+--
 -- For production, prefer a private bucket + signed URLs instead of public
--- access, since CNIC images are sensitive personal data.
+-- access, since CNIC images are sensitive personal data. That change also
+-- means swapping getPublicUrl() for createSignedUrl() in ApplicationForm and
+-- ApplicantsTable -- see OnboardingTable for the signed-URL pattern.
 
 -- n8n integration point:
 -- Add a Database Webhook (Database -> Webhooks in the Supabase dashboard)
@@ -149,6 +178,37 @@ create table if not exists onboarding_submissions (
 
   notes text
 );
+
+-- MIGRATION -- required for any project created before the "pending row
+-- first" change. Run this once against an existing database.
+--
+-- The create table above is "if not exists", so on a database that already
+-- has this table it does NOTHING -- re-running this file silently leaves the
+-- old column definitions in place. The original table was:
+--     status ... default 'submitted' check (status in ('submitted','reviewed'))
+--     cnic_front_path text not null   (and the other five path columns)
+-- which matched the old client: upload every file first, then insert one
+-- complete 'submitted' row.
+--
+-- The client now inserts a 'pending' row with NULL document paths BEFORE it
+-- uploads anything. Against the old table that insert dies immediately on
+-- the status check constraint (23514) and the not-null path columns (23502),
+-- which throws before the first upload call is ever reached -- so no file
+-- ever leaves the browser and it looks like "uploads are broken" when
+-- storage was never involved at all.
+alter table onboarding_submissions
+  drop constraint if exists onboarding_submissions_status_check;
+alter table onboarding_submissions
+  add constraint onboarding_submissions_status_check
+  check (status in ('pending', 'submitted', 'reviewed'));
+alter table onboarding_submissions
+  alter column status set default 'pending';
+
+alter table onboarding_submissions alter column cnic_front_path drop not null;
+alter table onboarding_submissions alter column cnic_back_path drop not null;
+alter table onboarding_submissions alter column passport_photo_path drop not null;
+alter table onboarding_submissions alter column offer_letter_path drop not null;
+alter table onboarding_submissions alter column university_proof_path drop not null;
 
 alter table onboarding_submissions enable row level security;
 

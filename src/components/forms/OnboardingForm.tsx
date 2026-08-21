@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { errorDetail } from "@/lib/errors";
 import { Select } from "@/components/ui/Select";
 import { FileField } from "@/components/ui/FileField";
 import { FormSection } from "@/components/forms/FormSection";
@@ -398,7 +399,7 @@ export function OnboardingForm() {
       setError(
         err instanceof Error && err.message.includes("timed out")
           ? err.message
-          : "Something went wrong submitting your paperwork. Your progress was saved — please try again."
+          : `Something went wrong submitting your paperwork: ${errorDetail(err)}. Your progress was saved — please try again.`
       );
     } finally {
       setLoading(false);
