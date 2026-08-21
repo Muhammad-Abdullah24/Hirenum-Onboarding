@@ -5,6 +5,7 @@ import { useState, FormEvent } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { guardianOptions } from "@/lib/guardians";
 import { errorDetail } from "@/lib/errors";
+import { newId, fileExtension } from "@/lib/upload";
 import { Select } from "@/components/ui/Select";
 
 export function ApplicationForm() {
@@ -34,8 +35,7 @@ export function ApplicationForm() {
 
     setLoading(true);
     try {
-      const fileExt = cnicFile.name.split(".").pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${newId()}.${fileExtension(cnicFile)}`;
 
       const { error: uploadError } = await supabase.storage
         .from("cnic-photos")

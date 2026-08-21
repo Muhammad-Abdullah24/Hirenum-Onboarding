@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { errorDetail } from "@/lib/errors";
+import { newId, fileExtension } from "@/lib/upload";
 import { Select } from "@/components/ui/Select";
 import { FileField } from "@/components/ui/FileField";
 import { FormSection } from "@/components/forms/FormSection";
@@ -246,7 +247,7 @@ export function OnboardingForm() {
     // Reuse the id from a previous failed attempt (restored from the draft)
     // so a retry updates that same row instead of leaving it orphaned as a
     // second untouched 'pending' row.
-    const id = submissionId ?? crypto.randomUUID();
+    const id = submissionId ?? newId();
     if (!submissionId) setSubmissionId(id);
 
     try {
@@ -317,7 +318,6 @@ export function OnboardingForm() {
       }
 
       async function uploadOne(file: File, name: string) {
-        const ext = file.name.split(".").pop();
         // Unique per upload attempt, not just per submission: a retry might
         // re-select a *different* file for a field that already uploaded
         // successfully in an earlier failed attempt. Reusing the same path
@@ -326,7 +326,7 @@ export function OnboardingForm() {
         // conflict error blocking a legitimate retry -- a fresh path every
         // time sidesteps both. The old attempt's file is just left orphaned
         // in storage, unreferenced by any submission row.
-        const path = `${id}/${name}-${crypto.randomUUID()}.${ext}`;
+        const path = `${id}/${name}-${newId()}.${fileExtension(file)}`;
         // supabase-js's storage upload() has no abort/signal option, so this
         // can't cancel the underlying request -- but it stops the UI from
         // waiting on it forever and lets the user retry instead of being
