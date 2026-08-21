@@ -19,9 +19,14 @@ import {
 } from "@/lib/onboarding";
 
 const DRAFT_KEY = "hirenum-onboarding-draft";
-// Generous per-file ceiling for a slow mobile connection: bounds the worst
-// case instead of leaving an upload hanging with no feedback forever.
-const UPLOAD_TIMEOUT_MS = 60_000;
+// Per-file ceiling: bounds the worst case instead of leaving an upload
+// hanging with no feedback forever. Raised from 60s because FileField
+// accepts files up to 20MB, and 20MB over a weak mobile connection can
+// exceed a minute -- at which point this timer fires on an upload that then
+// completes server-side anyway, aborting the run and stranding the file in
+// storage with nothing referencing it. That is the exact fingerprint the
+// first real submission left behind.
+const UPLOAD_TIMEOUT_MS = 180_000;
 
 type TextFieldName =
   | "fullName"
@@ -369,25 +374,49 @@ export function OnboardingForm() {
         ...degreeCertificates.map((file, i) => ({ file, name: `degree-${i}` })),
       ];
 
-      const paths: Record<string, string> = {};
+      // Every path used to be held in memory and written in ONE final update
+      // after the whole queue finished. Anything that interrupted the run
+      // between the last upload and that write -- a 60s timeout on a slow
+      // connection, a closed tab, a denied update -- left all the files
+      // sitting in storage with nothing referencing them and the row stuck
+      // on 'pending' with null paths. That is recoverable only by hand,
+      // because the paths existed nowhere but the dead tab's memory.
+      //
+      // Each path is now recorded the moment its file lands, so an
+      // interrupted run keeps everything that already finished. It also
+      // surfaces a refused update on the FIRST file instead of after
+      // uploading all seven.
+      const COLUMN_FOR: Record<string, string> = {
+        "cnic-front": "cnic_front_path",
+        "cnic-back": "cnic_back_path",
+        "passport-photo": "passport_photo_path",
+        "posts-photo": "posts_photo_path",
+        "offer-letter": "offer_letter_path",
+        "university-proof": "university_proof_path",
+      };
+
+      const degreePaths: string[] = [];
       for (let i = 0; i < queue.length; i++) {
         const { file, name } = queue[i];
         setUploadStatus(`Uploading ${i + 1} of ${queue.length}: ${file.name}`);
-        paths[name] = await uploadOne(file, name);
+        const path = await uploadOne(file, name);
+
+        const column = COLUMN_FOR[name];
+        const patch = column
+          ? { [column]: path }
+          : { degree_certificate_paths: [...degreePaths, path] };
+        if (!column) degreePaths.push(path);
+
+        const { error: pathError } = await supabase
+          .from("onboarding_submissions")
+          .update(patch)
+          .eq("id", id);
+        if (pathError) throw pathError;
       }
 
       const { error: updateError } = await supabase
         .from("onboarding_submissions")
-        .update({
-          status: "submitted",
-          cnic_front_path: paths["cnic-front"],
-          cnic_back_path: paths["cnic-back"],
-          passport_photo_path: paths["passport-photo"],
-          posts_photo_path: paths["posts-photo"] ?? null,
-          offer_letter_path: paths["offer-letter"],
-          university_proof_path: paths["university-proof"],
-          degree_certificate_paths: degreeCertificates.map((_, i) => paths[`degree-${i}`]),
-        })
+        .update({ status: "submitted" })
         .eq("id", id);
 
       if (updateError) throw updateError;

@@ -18,6 +18,7 @@ import {
   FileText,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { errorDetail } from "@/lib/errors";
 import {
   OnboardingSubmission,
   OnboardingStatus,
@@ -39,6 +40,7 @@ const STATUS_BADGE: Record<OnboardingStatus, { label: string; className: string 
 
 function DocumentLink({ path, label }: { path: string | null; label: string }) {
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
 
   if (!path) {
     return (
@@ -51,11 +53,18 @@ function DocumentLink({ path, label }: { path: string | null; label: string }) {
 
   async function open() {
     setLoading(true);
+    setFailed(null);
     const { data, error } = await supabase.storage
       .from("onboarding-documents")
       .createSignedUrl(path as string, SIGNED_URL_TTL);
     setLoading(false);
-    if (!error && data) window.open(data.signedUrl, "_blank", "noreferrer");
+    // Previously a refusal here did nothing at all -- the button just went
+    // dead, with no way to tell a blocked read from a stuck click.
+    if (error || !data) {
+      setFailed(errorDetail(error) || "Could not open document.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noreferrer");
   }
 
   return (
@@ -64,6 +73,7 @@ function DocumentLink({ path, label }: { path: string | null; label: string }) {
       <button type="button" className="admin-doc-link" onClick={open} disabled={loading}>
         {loading ? "Loading..." : "View"} {!loading && <ExternalLink size={12} />}
       </button>
+      {failed && <p className="text-sm" style={{ color: "#e24b4a" }}>{failed}</p>}
     </div>
   );
 }
@@ -110,7 +120,11 @@ function PhotoField({ path, label }: { path: string | null; label: string }) {
       .from("onboarding-documents")
       .createSignedUrl(path as string, SIGNED_URL_TTL, { download: filename });
     setDownloading(false);
-    if (!error && data) window.open(data.signedUrl, "_blank", "noreferrer");
+    if (error || !data) {
+      setFailed(true);
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noreferrer");
   }
 
   return (
@@ -365,23 +379,47 @@ export function OnboardingTable() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<OnboardingStatus | "all">("all");
   const [query, setQuery] = useState("");
+  // A denied/failed load used to be dropped silently, rendering the same
+  // "No onboarding submissions yet" screen as a genuinely empty table --
+  // so an RLS refusal was indistinguishable from having no data.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [viewerEmail, setViewerEmail] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
+      const { data: auth } = await supabase.auth.getUser();
+      setViewerEmail(auth.user?.email ?? null);
+
       const { data, error } = await supabase
         .from("onboarding_submissions")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!error && data) setSubmissions(data as OnboardingSubmission[]);
+      if (error) setLoadError(errorDetail(error));
+      else if (data) setSubmissions(data as OnboardingSubmission[]);
       setLoading(false);
     }
     load();
   }, []);
 
   async function handleStatusChange(id: string, status: OnboardingStatus) {
+    const previous = submissions.find((s) => s.id === id)?.status;
+    setActionError(null);
     setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
-    await supabase.from("onboarding_submissions").update({ status }).eq("id", id);
+    const { error } = await supabase
+      .from("onboarding_submissions")
+      .update({ status })
+      .eq("id", id);
+    if (error) {
+      // Revert the optimistic repaint -- otherwise the badge says "Reviewed"
+      // while the database still says "Submitted", and nobody finds out
+      // until the next reload.
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === id && previous ? { ...s, status: previous } : s))
+      );
+      setActionError(`Could not update status: ${errorDetail(error)}`);
+    }
   }
 
   async function handleFieldSave(id: string, field: keyof OnboardingSubmission, value: string) {
@@ -424,6 +462,17 @@ export function OnboardingTable() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="admin-empty">
+        <span className="admin-empty-icon-circle">
+          <Inbox size={22} />
+        </span>
+        <p>Could not load submissions: {loadError}</p>
+      </div>
+    );
+  }
+
   if (submissions.length === 0) {
     return (
       <div className="admin-empty">
@@ -431,12 +480,24 @@ export function OnboardingTable() {
           <Inbox size={22} />
         </span>
         <p>No onboarding submissions yet.</p>
+        {/* An empty result here is far more often the row-level security
+            allow-list rejecting this account than a genuinely empty table,
+            and the two look identical -- so name the account being used. */}
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+          Signed in as {viewerEmail ?? "an unknown account"}. Submissions are only
+          visible to the admin emails listed in the database policy.
+        </p>
       </div>
     );
   }
 
   return (
     <div>
+      {actionError && (
+        <p className="text-sm" style={{ color: "#e24b4a", marginBottom: 12 }}>
+          {actionError}
+        </p>
+      )}
       <div className="admin-stat-row">
         <button
           type="button"

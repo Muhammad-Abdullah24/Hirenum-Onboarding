@@ -13,6 +13,7 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { errorDetail } from "@/lib/errors";
 import { Applicant, ApplicantStatus } from "@/lib/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { AdminAvatar } from "@/components/admin/AdminAvatar";
@@ -47,6 +48,9 @@ export function ApplicantsTable() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<ApplicantStatus | "all">("all");
   const [query, setQuery] = useState("");
+  // Failures here used to be discarded, so a denied query and a genuinely
+  // empty table rendered identically.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -54,7 +58,8 @@ export function ApplicantsTable() {
       .from("applicants")
       .select("*")
       .order("created_at", { ascending: false });
-    if (!error && data) setApplicants(data as Applicant[]);
+    if (error) setActionError(`Could not load applicants: ${errorDetail(error)}`);
+    else if (data) setApplicants(data as Applicant[]);
     setLoading(false);
   }
 
@@ -63,13 +68,24 @@ export function ApplicantsTable() {
   }, []);
 
   async function updateStatus(id: string, status: ApplicantStatus) {
+    const previous = applicants.find((x) => x.id === id)?.status;
+    setActionError(null);
     setApplicants((prev) =>
       prev.map((a) => (a.id === id ? { ...a, status } : a))
     );
     // This is the row-level hook n8n will eventually watch (via a Supabase
     // database webhook on UPDATE) to trigger the email to Bin Aslam once
     // status flips to "shortlisted".
-    await supabase.from("applicants").update({ status }).eq("id", id);
+    const { error } = await supabase.from("applicants").update({ status }).eq("id", id);
+    if (error) {
+      // The optimistic repaint above already moved the badge. Without this
+      // revert the admin sees the new status while the database still holds
+      // the old one, and only discovers it on the next page load.
+      setApplicants((prev) =>
+        prev.map((x) => (x.id === id && previous ? { ...x, status: previous } : x))
+      );
+      setActionError(`Could not update status: ${errorDetail(error)}`);
+    }
   }
 
   const counts = useMemo(() => {
@@ -104,6 +120,11 @@ export function ApplicantsTable() {
 
   return (
     <div>
+      {actionError && (
+        <p className="text-sm" style={{ color: "#e24b4a", marginBottom: 12 }}>
+          {actionError}
+        </p>
+      )}
       <div className="admin-stat-row">
         <button
           type="button"
